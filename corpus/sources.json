@@ -1,0 +1,21 @@
+{
+  "$comment": "Approved-source inventory (spec Appendix C, §6.1). Add one entry per document Meleph supplies; put files in corpus/raw/. Only entries with include=true are ingested. Run `npm run ingest` after changes.",
+  "sources": [
+    {
+      "id": "SRC-000",
+      "title": "Example entry — replace with a real approved source",
+      "issuer": "",
+      "lang": "en",
+      "type": "manual",
+      "file": "",
+      "url": null,
+      "date": "",
+      "pages": "",
+      "usage": "pending approval",
+      "owner": "Meleph",
+      "status": "unknown",
+      "caveat": "",
+      "include": false
+    }
+  ]
+}
