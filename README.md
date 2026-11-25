@@ -55,8 +55,8 @@ Vercel (or any Node host):
 ## Admin dashboard
 
 - Sign in at `/admin` with `ADMIN_PASSWORD` from `.env.local`.
-- Shows ~80 **fictional sample cases** (marked SAMPLE) plus every report confirmed on the website (marked WEBSITE, reference `DEMO-AACMA-001`, `-002`, …). New website reports appear within ~8 seconds with a notification.
-- Website reports are stored in **Firebase Realtime Database** when configured (top bar shows "Firebase"), otherwise in `.data/cases.json` (git-ignored, top bar shows "Local storage"). Sample cases are never written to the database.
+- Shows reports confirmed on the website (marked WEBSITE, reference `DEMO-AACMA-001`, `-002`, …). New website reports appear within ~8 seconds with a notification.
+- Website reports are stored in **Firebase Realtime Database** when configured (top bar shows "Firebase"), otherwise in `.data/cases.json` (git-ignored, top bar shows "Local storage").
 
 ### Photos (Cloudinary)
 
@@ -71,7 +71,6 @@ When `CLOUDINARY_CLOUD_NAME` and `CLOUDINARY_UPLOAD_PRESET` are set (cloud `q1pf
 5. Restart `npm run dev`, then `npm run db:check` — it tests read/write and warns if the database is still publicly readable.
 
 The web config (`apiKey`, `appId`, …) is not needed: browsers never talk to the database directly.
-- The ↺ button in the dashboard top bar clears website reports and regenerates the sample data (for rehearsals).
 - Priority targets (4 h / 24 h / 48 h / 72 h) and severity criteria are **demonstration values**; AACMA defines the real ones.
 
 ## Demo rehearsal
@@ -93,7 +92,7 @@ The web config (`apiKey`, `appId`, …) is not needed: browsers never talk to th
 | `lib/ai/prompt.ts`, `lib/ai/vision.ts` | Prompts and JSON schemas |
 | `lib/rag/search.ts` | Hybrid embedding + BM25 retrieval |
 | `components/assistant/*` | Widget UI and conversation orchestration |
-| `lib/cases/*` | Case store, sample data, SLA rules, statistics |
+| `lib/cases/*` | Case store, SLA rules, statistics |
 | `app/admin/*`, `components/admin/*` | Operations dashboard |
 | `content/site.ts` | Agency facts used on the site (items marked CONFIRM) |
 | `app/globals.css` | Design tokens (plan §6) |

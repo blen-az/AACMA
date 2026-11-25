@@ -20,7 +20,6 @@ function CasesTable() {
   const [status, setStatus] = useState(params.get("status") ?? "open");
   const [severity, setSeverity] = useState(params.get("severity") ?? "");
   const [subcity, setSubcity] = useState(params.get("subcity") ?? "");
-  const [source, setSource] = useState(params.get("source") ?? "");
   const [sort, setSort] = useState<"newest" | "priority" | "due">("newest");
 
   const rows = useMemo(() => {
@@ -32,7 +31,6 @@ function CasesTable() {
       )
       .filter((c) => !severity || c.severity === severity)
       .filter((c) => !subcity || (c.subcity ?? "Unassigned") === subcity)
-      .filter((c) => !source || c.source === source)
       .filter((c) => !term || [c.reference, c.description, c.location.text, c.subcity, c.assignedTo].some((v) => v?.toLowerCase().includes(term)))
       .sort((a, b) =>
         sort === "priority"
@@ -41,7 +39,7 @@ function CasesTable() {
             ? (a.dueAt ?? "9").localeCompare(b.dueAt ?? "9")
             : b.createdAt.localeCompare(a.createdAt),
       );
-  }, [cases, q, status, severity, subcity, source, sort]);
+  }, [cases, q, status, severity, subcity, sort]);
 
   if (!cases) return <p className="flex items-center gap-2 text-slate-400"><Loader2 className="size-4 animate-spin" aria-hidden /> Loading cases…</p>;
 
@@ -72,11 +70,6 @@ function CasesTable() {
         <select aria-label="Sub-city" value={subcity} onChange={(e) => setSubcity(e.target.value)} className={select}>
           <option value="">All sub-cities</option>
           {[...SUBCITY_NAMES, "Unassigned"].map((s) => <option key={s} value={s}>{s}</option>)}
-        </select>
-        <select aria-label="Source" value={source} onChange={(e) => setSource(e.target.value)} className={select}>
-          <option value="">All sources</option>
-          <option value="web">Website</option>
-          <option value="sample">Sample</option>
         </select>
         <select aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as typeof sort)} className={select}>
           <option value="newest">Newest first</option>

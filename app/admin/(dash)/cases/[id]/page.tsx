@@ -103,7 +103,7 @@ export default function CaseDetailPage() {
                   </a>
                 ) : (
                   <div className="grid h-48 place-items-center rounded-lg border border-dashed border-line text-sm text-slate-500">
-                    <span className="flex flex-col items-center gap-2"><ImageOff className="size-6" aria-hidden />{c.source === "sample" ? "Sample case — no photo" : "No photo"}</span>
+                    <span className="flex flex-col items-center gap-2"><ImageOff className="size-6" aria-hidden />No photo</span>
                   </div>
                 )}
               </div>

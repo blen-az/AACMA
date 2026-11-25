@@ -95,7 +95,7 @@ export default function Overview() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiTile label="Reports received" value={t.received} hint={`${t.live} from the website`} icon={Inbox} />
+        <KpiTile label="Reports received" value={t.received} icon={Inbox} />
         <KpiTile label="Open cases" value={t.open} hint={`${t.urgentOpen} urgent`} icon={Clock} />
         <KpiTile label="Overdue" value={t.overdue} hint="Past the target time" icon={AlertTriangle} tone={t.overdue ? "critical" : "default"} />
         <KpiTile

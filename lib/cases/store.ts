@@ -1,23 +1,15 @@
 /**
  * Case store for the dashboard. Server-side only.
  *
- * - Sample cases: generated in memory at start-up (fictional, relative to "now").
- * - Live cases (reports confirmed on the website): persisted through `repo()` —
- *   Firebase Realtime Database when configured, otherwise .data/cases.json.
+ * Website reports are persisted in Firebase Realtime Database when configured,
+ * otherwise in .data/cases.json.
  */
 import { randomBytes, randomUUID } from "node:crypto";
 import type { AssessResult } from "../ai/vision";
 import { cloudinaryConfigured, fetchPhoto, uploadPhoto } from "./cloudinary";
 import { repo, type Photo } from "./repo";
-import { generateSampleCases } from "./seed";
 import { dueFrom, isOverdue } from "./sla";
 import type { CaseDetail, CaseRecord, CaseStatus, CaseSummary, Severity } from "./types";
-
-const g = globalThis as unknown as { __aacmaSample?: CaseRecord[] };
-function sample(): CaseRecord[] {
-  g.__aacmaSample ??= generateSampleCases();
-  return g.__aacmaSample;
-}
 
 export async function storeKind(): Promise<"firebase" | "file"> {
   return (await repo()).kind;
@@ -25,11 +17,12 @@ export async function storeKind(): Promise<"firebase" | "file"> {
 
 export async function allCases(): Promise<CaseRecord[]> {
   const live = await (await repo()).list();
-  return [...live, ...sample()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return live.filter((c) => c.source === "web").sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 export async function getCase(id: string): Promise<CaseRecord | undefined> {
-  return sample().find((c) => c.id === id) ?? (await (await repo()).get(id));
+  const found = await (await repo()).get(id);
+  return found?.source === "web" ? found : undefined;
 }
 
 /** Photo bytes (for the AI): from Cloudinary when the case has a URL, else from the store. */
@@ -172,10 +165,4 @@ export async function updateCase(id: string, patch: CasePatch, actor = "Admin"):
   if (patch.note?.trim()) log(c, actor, "Note", patch.note.trim().slice(0, 1000));
   await persist(c);
   return c;
-}
-
-/** Clears website reports (rehearsals) and regenerates the sample data. */
-export async function resetLiveCases() {
-  await (await repo()).clear();
-  g.__aacmaSample = generateSampleCases();
 }

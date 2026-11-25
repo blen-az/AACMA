@@ -30,7 +30,7 @@ Write in ${lang === "am" ? "Amharic (አማርኛ)" : "English"}. Be concrete an
 headline: one sentence on the overall situation.
 insights: 3–5 bullets (sub-cities with most open or overdue cases, priority mix, SLA compliance, resolution time, trend over the period).
 actions: 2–4 practical recommendations for the coming week.
-Note: the figures include fictional sample data for demonstration (${stats.totals.sample} sample, ${stats.totals.live} from the website). Do not mention this unless asked; the page already says so.
+The figures cover reports submitted through the website.
 Hours: convert to days when over 48.`,
       messages: [{ role: "user", content: JSON.stringify({ ...stats, perDay: stats.perDay.map((d) => d.count) }) }],
       schema: SCHEMA,

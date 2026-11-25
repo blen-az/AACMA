@@ -13,8 +13,6 @@ export type Stats = {
     urgentOpen: number;
     avgResolutionHours: number | null;
     slaCompliance: number | null; // 0..1
-    live: number;
-    sample: number;
   };
   perDay: { date: string; count: number }[];
   bySubcity: { name: string; total: number; open: number; overdue: number }[];
@@ -63,8 +61,6 @@ export function computeStats(cases: CaseRecord[], days = 30, now = Date.now()): 
       urgentOpen: inWindow.filter((c) => c.severity === "urgent" && isOpen(c)).length,
       avgResolutionHours: hours.length ? hours.reduce((a, b) => a + b, 0) / hours.length : null,
       slaCompliance: slaKnown.length ? slaKnown.filter(Boolean).length / slaKnown.length : null,
-      live: inWindow.filter((c) => c.source === "web").length,
-      sample: inWindow.filter((c) => c.source === "sample").length,
     },
     perDay,
     bySubcity,

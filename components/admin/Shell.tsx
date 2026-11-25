@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, ExternalLink, FolderKanban, LayoutDashboard, LogOut, Menu, RefreshCw, RotateCcw, X } from "lucide-react";
+import { AlertTriangle, ExternalLink, FolderKanban, LayoutDashboard, LogOut, Menu, RefreshCw, X } from "lucide-react";
 import { AdminDataProvider, useAdminData } from "./data";
 
 const NAV = [
@@ -67,7 +67,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function TopBar({ onMenu }: { onMenu: () => void }) {
-  const { lastUpdated, refresh, error, stats, store } = useAdminData();
+  const { lastUpdated, refresh, error, store } = useAdminData();
   return (
     <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-deep/90 px-4 py-3 backdrop-blur sm:px-6">
       <button type="button" className="rounded-md p-1.5 text-slate-300 lg:hidden" onClick={onMenu} aria-label="Open menu">
@@ -81,11 +81,6 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         {error ? "Connection problem" : "Live"}
         {lastUpdated && <span className="hidden sm:inline">· updated {lastUpdated.toLocaleTimeString("en-GB")}</span>}
       </div>
-      {stats && (
-        <span className="hidden rounded-full border border-line px-2.5 py-0.5 text-[11px] text-slate-400 md:inline">
-          Includes {stats.totals.sample} fictional sample cases · {stats.totals.live} from the website
-        </span>
-      )}
       {store && (
         <span
           className={`hidden rounded-full px-2.5 py-0.5 text-[11px] sm:inline ${store === "firebase" ? "bg-amber-500/15 text-amber-200" : "bg-white/5 text-slate-400"}`}
@@ -97,19 +92,6 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
       <div className="ml-auto flex items-center gap-1">
         <button type="button" onClick={() => void refresh()} className="rounded-md p-2 text-slate-400 transition-colors hover:text-white" aria-label="Refresh" title="Refresh">
           <RefreshCw className="size-4" aria-hidden />
-        </button>
-        <button
-          type="button"
-          title="Reset demo data (clears website reports)"
-          aria-label="Reset demo data"
-          onClick={async () => {
-            if (!window.confirm("Clear all website reports and regenerate the sample data?")) return;
-            await fetch("/api/admin/cases", { method: "DELETE" });
-            await refresh();
-          }}
-          className="rounded-md p-2 text-slate-400 transition-colors hover:text-white"
-        >
-          <RotateCcw className="size-4" aria-hidden />
         </button>
       </div>
     </div>
