@@ -15,8 +15,6 @@ type Ctx = {
   cases: CaseSummary[] | null;
   stats: Stats | null;
   error: string | null;
-  lastUpdated: Date | null;
-  store: "firebase" | "file" | null;
   refresh: () => Promise<void>;
   toasts: Toast[];
   dismissToast: (id: string) => void;
@@ -46,8 +44,6 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const [cases, setCases] = useState<CaseSummary[] | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [store, setStore] = useState<"firebase" | "file" | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const known = useRef<Set<string> | null>(null);
   const router = useRouter();
@@ -55,7 +51,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const [c, s] = await Promise.all([
-        adminFetch<{ cases: CaseSummary[]; store: "firebase" | "file" }>("/api/admin/cases"),
+        adminFetch<{ cases: CaseSummary[] }>("/api/admin/cases"),
         adminFetch<Stats>("/api/admin/stats"),
       ]);
       const live = c.cases.filter((x) => x.source === "web");
@@ -65,10 +61,8 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
       }
       known.current = new Set(live.map((x) => x.id));
       setCases(c.cases);
-      setStore(c.store);
       setStats(s);
       setError(null);
-      setLastUpdated(new Date());
     } catch (e) {
       setError(String(e));
     }
@@ -90,7 +84,7 @@ export function AdminDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <AdminData.Provider
-      value={{ cases, stats, error, lastUpdated, store, refresh, toasts, dismissToast: (id) => setToasts((t) => t.filter((x) => x.id !== id)) }}
+      value={{ cases, stats, error, refresh, toasts, dismissToast: (id) => setToasts((t) => t.filter((x) => x.id !== id)) }}
     >
       {children}
       <div className="fixed bottom-5 right-5 z-50 flex w-80 flex-col gap-2" aria-live="polite">

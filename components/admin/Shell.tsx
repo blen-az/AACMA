@@ -3,19 +3,20 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
-import { AlertTriangle, ExternalLink, FolderKanban, LayoutDashboard, LogOut, Menu, RefreshCw, X } from "lucide-react";
+import { AlertTriangle, ExternalLink, FolderKanban, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { AdminDataProvider, useAdminData } from "./data";
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: LayoutDashboard },
-  { href: "/admin/cases", label: "Cases", icon: FolderKanban },
-  { href: "/admin/escalations", label: "Escalations", icon: AlertTriangle },
+  { href: "/admin/cases", label: "Reports", icon: FolderKanban },
+  { href: "/admin/escalations", label: "Deadlines", icon: AlertTriangle },
 ];
 
 function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { stats } = useAdminData();
+  const { cases } = useAdminData();
+  const overdue = cases?.filter((c) => c.overdue).length ?? 0;
   return (
     <nav className="flex h-full flex-col gap-1 p-4" aria-label="Admin">
       <Link href="/admin" className="mb-6 flex items-center gap-3 px-2" onClick={onNavigate}>
@@ -40,8 +41,8 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           >
             <Icon className={`size-4 ${active ? "text-brand-blue-text" : ""}`} aria-hidden />
             {label}
-            {href === "/admin/escalations" && stats && stats.totals.overdue > 0 && (
-              <span className="ml-auto rounded-full bg-red-500/20 px-2 text-xs tabular-nums text-red-300">{stats.totals.overdue}</span>
+            {href === "/admin/escalations" && overdue > 0 && (
+              <span className="ml-auto rounded-full bg-red-500/20 px-2 text-xs tabular-nums text-red-300">{overdue}</span>
             )}
           </Link>
         );
@@ -66,34 +67,14 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function TopBar({ onMenu }: { onMenu: () => void }) {
-  const { lastUpdated, refresh, error, store } = useAdminData();
+function ReportLoadError() {
+  const { cases, error, refresh } = useAdminData();
+  if (!error) return null;
+
   return (
-    <div className="sticky top-0 z-30 flex items-center gap-3 border-b border-line bg-deep/90 px-4 py-3 backdrop-blur sm:px-6">
-      <button type="button" className="rounded-md p-1.5 text-slate-300 lg:hidden" onClick={onMenu} aria-label="Open menu">
-        <Menu className="size-5" aria-hidden />
-      </button>
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <span className="relative flex size-2">
-          {!error && <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-60" />}
-          <span className={`relative inline-flex size-2 rounded-full ${error ? "bg-red-400" : "bg-emerald-400"}`} />
-        </span>
-        {error ? "Connection problem" : "Live"}
-        {lastUpdated && <span className="hidden sm:inline">· updated {lastUpdated.toLocaleTimeString("en-GB")}</span>}
-      </div>
-      {store && (
-        <span
-          className={`hidden rounded-full px-2.5 py-0.5 text-[11px] sm:inline ${store === "firebase" ? "bg-amber-500/15 text-amber-200" : "bg-white/5 text-slate-400"}`}
-          title={store === "firebase" ? "Website reports are stored in Firebase Realtime Database" : "Website reports are stored in .data/cases.json on this computer"}
-        >
-          {store === "firebase" ? "Firebase" : "Local storage"}
-        </span>
-      )}
-      <div className="ml-auto flex items-center gap-1">
-        <button type="button" onClick={() => void refresh()} className="rounded-md p-2 text-slate-400 transition-colors hover:text-white" aria-label="Refresh" title="Refresh">
-          <RefreshCw className="size-4" aria-hidden />
-        </button>
-      </div>
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100" role="status">
+      <p>{cases ? "Reports could not be refreshed. Showing the last loaded results." : "Reports could not be loaded."}</p>
+      <button type="button" onClick={() => void refresh()} className="font-medium underline underline-offset-4">Try again</button>
     </div>
   );
 }
@@ -118,8 +99,15 @@ export function AdminShell({ children }: { children: ReactNode }) {
           </div>
         )}
         <div className="min-w-0 flex-1">
-          <TopBar onMenu={() => setOpen(true)} />
-          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+          <div className="sticky top-0 z-30 border-b border-line bg-deep px-4 py-2 lg:hidden">
+            <button type="button" className="inline-flex items-center gap-2 rounded-md p-2 text-sm text-slate-200" onClick={() => setOpen(true)} aria-expanded={open}>
+              <Menu className="size-5" aria-hidden /> Menu
+            </button>
+          </div>
+          <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:py-8">
+            <ReportLoadError />
+            {children}
+          </main>
         </div>
       </div>
     </AdminDataProvider>

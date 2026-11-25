@@ -55,8 +55,8 @@ Vercel (or any Node host):
 ## Admin dashboard
 
 - Sign in at `/admin` with `ADMIN_PASSWORD` from `.env.local`.
-- Shows reports confirmed on the website (marked WEBSITE, reference `DEMO-AACMA-001`, `-002`, …). New website reports appear within ~8 seconds with a notification.
-- Website reports are stored in **Firebase Realtime Database** when configured (top bar shows "Firebase"), otherwise in `.data/cases.json` (git-ignored, top bar shows "Local storage").
+- Shows reports confirmed on the website (reference `DEMO-AACMA-001`, `-002`, …). New website reports appear within ~8 seconds with a notification.
+- Website reports are stored in **Firebase Realtime Database** when configured, otherwise in `.data/cases.json` (git-ignored).
 
 ### Photos (Cloudinary)
 

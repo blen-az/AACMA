@@ -60,14 +60,6 @@ export function OverdueBadge() {
   );
 }
 
-export function SourceBadge({ source }: { source: "web" | "sample" }) {
-  return source === "web" ? (
-    <span className="rounded bg-brand-blue/20 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-brand-blue-text">Website</span>
-  ) : (
-    <span className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">Sample</span>
-  );
-}
-
 export function Panel({ title, subtitle, action, children, className = "" }: { title?: string; subtitle?: string; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={`rounded-xl border border-line bg-surface p-5 ${className}`}>

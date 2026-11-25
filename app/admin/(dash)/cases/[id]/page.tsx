@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, ArrowLeft, Brain, ImageOff, Loader2, MapPin, Phone, RefreshCw, User } from "lucide-react";
 import { adminFetch, useAdminData } from "@/components/admin/data";
-import { OverdueBadge, Panel, SeverityBadge, SourceBadge, StatusBadge, dueIn, fmtDate, timeAgo } from "@/components/admin/ui";
+import { OverdueBadge, Panel, SeverityBadge, StatusBadge, dueIn, fmtDate, timeAgo } from "@/components/admin/ui";
 import { formatPhone } from "@/lib/complaint/validators";
 import { SUBCITY_NAMES, TEAMS } from "@/lib/cases/geo";
 import { SLA_HOURS } from "@/lib/cases/sla";
@@ -38,12 +38,17 @@ export default function CaseDetailPage() {
   const [saving, setSaving] = useState(false);
   const [note, setNote] = useState("");
   const [rerun, setRerun] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [saveMessage, setSaveMessage] = useState<{ text: string; error: boolean } | null>(null);
+  const [assessmentError, setAssessmentError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       setC(await adminFetch<CaseDetail>(`/api/admin/cases/${id}`));
+      setLoadError(false);
     } catch (e) {
       if (String(e).includes("404")) setNotFound(true);
+      else setLoadError(true);
     }
   }, [id]);
 
@@ -56,15 +61,24 @@ export default function CaseDetailPage() {
 
   async function patch(body: Record<string, unknown>) {
     setSaving(true);
+    setSaveMessage(null);
     try {
       setC(await adminFetch<CaseDetail>(`/api/admin/cases/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }));
       void refresh();
+      setSaveMessage({ text: "Changes saved.", error: false });
+      return true;
+    } catch {
+      setSaveMessage({ text: "Changes could not be saved. Please try again.", error: true });
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
   if (notFound) return <p className="text-slate-400">Case not found. <Link href="/admin/cases" className="text-brand-blue-text">Back to cases</Link></p>;
+  if (!c && loadError) {
+    return <p className="text-sm text-amber-200">This report could not be loaded. <button type="button" className="underline" onClick={() => void load()}>Try again</button></p>;
+  }
   if (!c) return <p className="flex items-center gap-2 text-slate-400"><Loader2 className="size-4 animate-spin" aria-hidden /> Loading case…</p>;
 
   const a = c.assessment;
@@ -72,15 +86,15 @@ export default function CaseDetailPage() {
 
   return (
     <div className="space-y-6">
+      {loadError && <p role="status" className="text-sm text-amber-200">Report details could not be refreshed. Showing the last loaded version.</p>}
       <Link href="/admin/cases" className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white">
-        <ArrowLeft className="size-4" aria-hidden /> All cases
+        <ArrowLeft className="size-4" aria-hidden /> All reports
       </Link>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h1 className="font-mono text-2xl text-white">{c.reference}</h1>
-            <SourceBadge source={c.source} />
           </div>
           <p className="mt-1 text-sm text-slate-400">Received {fmtDate(c.createdAt)} ({timeAgo(c.createdAt)}) · reported in {c.lang === "am" ? "Amharic" : "English"}</p>
         </div>
@@ -93,7 +107,7 @@ export default function CaseDetailPage() {
 
       <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="space-y-6">
-          <Panel title="Report">
+          <Panel title="What the resident reported">
             <div className="grid gap-5 md:grid-cols-2">
               <div>
                 {c.hasPhoto ? (
@@ -117,17 +131,17 @@ export default function CaseDetailPage() {
                   <p className="mt-1 flex gap-1.5 text-slate-100">
                     <MapPin className="mt-0.5 size-4 shrink-0 text-brand-blue-text" aria-hidden />
                     <span lang={c.lang}>
-                      {c.location.text ?? "Device location (GPS)"}
+                      {c.location.text ?? (c.location.lat !== undefined && c.location.lng !== undefined ? "Location shared from their device" : "Location not provided")}
                       {c.location.accuracy ? <span className="text-slate-400"> · ±{c.location.accuracy} m</span> : null}
                     </span>
                   </p>
                 </div>
                 <div>
-                  <div className="text-xs text-slate-400">Reporter</div>
-                  <p className="mt-1 flex items-center gap-1.5 text-slate-100"><User className="size-4 text-slate-500" aria-hidden />{c.reporterName}</p>
+                  <div className="text-xs text-slate-400">Resident contact</div>
+                  <p className="mt-1 flex items-center gap-1.5 text-slate-100"><User className="size-4 text-slate-500" aria-hidden />{c.reporterName || "Name not provided"}</p>
                   {c.reporterPhone && (
                     <a href={`tel:${c.reporterPhone}`} className="mt-1 flex items-center gap-1.5 text-brand-blue-text hover:underline">
-                      <Phone className="size-4" aria-hidden />{formatPhone(c.reporterPhone)}
+                      <Phone className="size-4" aria-hidden />Call {formatPhone(c.reporterPhone)}
                     </a>
                   )}
                 </div>
@@ -137,7 +151,7 @@ export default function CaseDetailPage() {
           </Panel>
 
           <Panel
-            title="AI preliminary assessment"
+            title="AI photo review"
             subtitle="Suggests a priority from the photo and description. Staff decide."
             action={
               c.hasPhoto ? (
@@ -146,25 +160,29 @@ export default function CaseDetailPage() {
                   disabled={rerun || c.assessmentStatus === "pending"}
                   onClick={async () => {
                     setRerun(true);
+                    setAssessmentError(false);
                     try {
                       setC(await adminFetch<CaseDetail>(`/api/admin/cases/${c.id}/assess`, { method: "POST" }));
                       void refresh();
+                    } catch {
+                      setAssessmentError(true);
                     } finally {
                       setRerun(false);
                     }
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-xs text-slate-300 transition-colors hover:border-brand-blue-text hover:text-brand-blue-text disabled:opacity-50"
                 >
-                  <RefreshCw className={`size-3.5 ${rerun ? "animate-spin" : ""}`} aria-hidden /> Re-run
+                  <RefreshCw className={`size-3.5 ${rerun ? "animate-spin" : ""}`} aria-hidden /> Review photo again
                 </button>
               ) : null
             }
           >
+            {assessmentError && <p role="status" className="text-sm text-amber-200">The photo review could not be started. You can still set the priority yourself.</p>}
             {(c.assessmentStatus === "pending" || rerun) && (
               <p className="flex items-center gap-2 text-sm text-slate-300"><Loader2 className="size-4 animate-spin" aria-hidden /> AI is analysing the photo…</p>
             )}
-            {c.assessmentStatus === "error" && !rerun && <p className="text-sm text-slate-400">The AI assessment could not be completed. You can re-run it.</p>}
-            {c.assessmentStatus === "none" && <p className="text-sm text-slate-400">No photo, so no AI assessment.</p>}
+            {c.assessmentStatus === "error" && !rerun && <p className="text-sm text-slate-400">The photo could not be reviewed. Try again or set the priority yourself.</p>}
+            {c.assessmentStatus === "none" && <p className="text-sm text-slate-400">There is no photo to review. Use the resident’s description to choose a priority.</p>}
             {a && !rerun && c.assessmentStatus === "done" && (
               <div className="space-y-4 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
@@ -207,21 +225,22 @@ export default function CaseDetailPage() {
         </div>
 
         <div className="space-y-6">
-          <Panel title="Manage case">
+          <Panel title="Manage this report" subtitle="Changes save when you make a selection.">
             <div className="space-y-4 text-sm">
               <label className="block">
-                <span className="text-xs text-slate-400">Status</span>
+                <span className="text-xs text-slate-400">Cleanup status</span>
                 <select className={`${select} mt-1`} value={c.status} disabled={saving} onChange={(e) => void patch({ status: e.target.value })}>
                   {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
                 </select>
+                <span className="mt-1 block text-xs text-slate-400">Use In progress when work starts and Resolved when the cleanup is complete.</span>
               </label>
               <label className="block">
-                <span className="text-xs text-slate-400">Assigned to</span>
+                <span className="text-xs text-slate-400">Responsible team</span>
                 <select className={`${select} mt-1`} value={c.assignedTo ?? ""} disabled={saving} onChange={(e) => void patch({ assignedTo: e.target.value || null })}>
                   <option value="">Not assigned</option>
                   {TEAMS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <span className="mt-1 block text-[11px] text-slate-500">Central dispatch vs. direct sub-city routing: to be confirmed with AACMA.</span>
+                <span className="mt-1 block text-[11px] text-slate-500">Choose the team responsible for following up on this report.</span>
               </label>
               <label className="block">
                 <span className="text-xs text-slate-400">Sub-city {c.subcityApprox && <span className="text-slate-500">(suggested from GPS — please confirm)</span>}</span>
@@ -238,27 +257,30 @@ export default function CaseDetailPage() {
                 </select>
               </label>
               <div className={`rounded-lg border p-3 ${c.overdue ? "border-red-400/40 bg-red-500/10" : "border-line bg-base"}`}>
-                <div className="text-xs text-slate-400">Resolution target</div>
+                <div className="text-xs text-slate-400">Cleanup deadline</div>
                 <div className={`mt-0.5 ${c.overdue ? "text-red-200" : "text-white"}`}>
-                  {open ? (c.dueAt ? `${fmtDate(c.dueAt)} · ${dueIn(c.dueAt)}` : "Set once priority is known") : `Resolved ${c.resolvedAt ? fmtDate(c.resolvedAt) : ""}`}
+                  {open ? (c.dueAt ? `${fmtDate(c.dueAt)} · ${dueIn(c.dueAt)}` : "Set once priority is known") : STATUS_LABEL[c.status] + (c.resolvedAt ? ` · ${fmtDate(c.resolvedAt)}` : "")}
                 </div>
               </div>
+              <p role="status" className={saveMessage?.error ? "text-amber-200" : "text-slate-400"}>{saving ? "Saving changes…" : saveMessage?.text}</p>
             </div>
           </Panel>
 
-          <Panel title="Timeline">
+          <Panel title="Updates and notes" subtitle="Keep a record of calls, site visits, and cleanup progress.">
             <form
               className="mb-5 flex gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
                 if (!note.trim()) return;
-                void patch({ note }).then(() => setNote(""));
+                void patch({ note }).then((saved) => { if (saved) setNote(""); });
               }}
             >
               <label className="sr-only" htmlFor="note">Add a note</label>
-              <input id="note" value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note for the team…" className="flex-1 rounded-lg border border-line bg-base px-3 py-2 text-sm text-white focus:border-brand-blue-text focus:outline-none" />
+              <input id="note" disabled={saving} maxLength={1000} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Add a note for the team…" className="min-w-0 flex-1 rounded-lg border border-line bg-base px-3 py-2 text-sm text-white focus:border-brand-blue-text focus:outline-none" />
               <button type="submit" disabled={saving || !note.trim()} className="rounded-lg bg-brand-blue px-3 py-2 text-sm text-white transition-colors hover:bg-brand-blue-hover disabled:opacity-50">Add</button>
             </form>
+            {saveMessage?.error && <p className="mb-3 text-sm text-amber-200">{saveMessage.text}</p>}
+            {c.history.length === 0 && <p className="text-sm text-slate-400">No updates have been recorded yet.</p>}
             <ol className="relative space-y-4 border-l border-line pl-5">
               {[...c.history].reverse().map((h, i) => (
                 <li key={i} className="relative">
